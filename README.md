@@ -1,112 +1,239 @@
-# Flask API (Production-ready) + Docker (Staging/Prod friendly)
+# Flask API Production-Ready + Docker Deployment
 
-Proyecto Flask bien organizado, listo para desplegar con Docker.
-Incluye:
-- App factory (create_app)
-- Blueprints
-- Config por entorno (.env)
-- Endpoint /health (ideal para ALB/ASG)
-- Logging básico
-- Dockerfile + docker-compose
-- Gunicorn para producción
+API REST desarrollada con Flask, estructurada con App Factory,
+Blueprints y lista para producción con Docker.
 
-## 1) Requisitos
-- Docker y Docker Compose instalados
+------------------------------------------------------------------------
 
-## 2) Ejecutar en local (sin Docker)
-```bash
+## Características
+
+-   App Factory (create_app)
+-   Blueprints
+-   Configuración por entorno (.env)
+-   Endpoint /health
+-   Logging configurable
+-   Gunicorn para producción
+-   Docker y Docker Compose
+
+------------------------------------------------------------------------
+
+## Requisitos
+
+-   Python 3.10+
+-   Docker
+-   Docker Compose
+
+------------------------------------------------------------------------
+
+## Estructura del Proyecto
+
+    .
+    ├── app/
+    │   ├── __init__.py
+    │   ├── config.py
+    │   ├── extensions.py
+    │   ├── api/
+    │   │   └── routes.py
+    │   └── web/
+    │       └── routes.py
+    ├── run.py
+    ├── wsgi.py
+    ├── requirements.txt
+    ├── Dockerfile
+    ├── docker-compose.yml
+    ├── .env.example
+    └── .gitignore
+
+------------------------------------------------------------------------
+
+## Configuración de Variables de Entorno
+
+``` bash
+cp .env.example .env
+```
+
+Ejemplo:
+
+``` env
+FLASK_ENV=production
+APP_NAME=flask-api
+LOG_LEVEL=INFO
+SECRET_KEY=secret_key
+PORT=8000
+```
+
+------------------------------------------------------------------------
+
+## Ejecución Local
+
+### Crear entorno virtual
+
+``` bash
 python -m venv venv
-source venv/bin/activate  # en Windows: venv\Scripts\activate
+source venv/bin/activate
+```
+
+### Instalar dependencias
+
+``` bash
 pip install -r requirements.txt
-cp .env.example .env
-python -m flask --app run:app run --host 0.0.0.
--## 7) Healthcheck para AutoScaling / ALB
-+## 8) Healthcheck para AutoScaling / ALB
-Configura el Target Group para usar:
-- Path: `/health`
-- Success codes: `200`
- {"id": "prod_1", "qty": 5}
- {"id": "prod_2", "qty": 1}
- {"id": "prod_1", "qty": 2},
-0 --port 8000
 ```
 
-Probar:
-```bash
-# 1. Health check
-curl -i http://localhost:8000/health
-# 2. Ping
-curl -i http://localhost:8000/api/v1/ping
-# 3. Crear Compra
-curl -i -X POST -H "Content-Type: application/json" -d '{"user_id": "u1", "items": [{"product_id": "p1", "price": 10, "quantity": 2}]}' http://localhost:8000/api/v1/purchases
-# 4. Ver Compra (copia el ID del paso anterior)
-# curl -i http://localhost:8000/api/v1/purchases/<ID_AQUI>
+### Ejecutar
+
+``` bash
+python -m flask --app run:app run --host 0.0.0.0 --port 8000
 ```
 
-## 3) Ejecutar con Docker (dev/prod con Gunicorn)
-```bash
-cp .env.example .env
+------------------------------------------------------------------------
+
+## Ejecución con Docker
+
+### Construir y levantar
+
+``` bash
 docker compose up --build
 ```
 
-Probar:
-```bash
-curl -i http://localhost:8080/health
+### Probar
+
+``` bash
+curl http://localhost:8080/health
 ```
 
-## 4) Variables de entorno
-Copia `.env.example` a `.env` y ajusta valores.
+------------------------------------------------------------------------
 
-- `FLASK_ENV`: development | production
-- `APP_NAME`: nombre de la app
-- `LOG_LEVEL`: DEBUG | INFO | WARNING | ERROR
-- `SECRET_KEY`: clave (no la subas al repo)
-- `PORT`: puerto interno de la app dentro del contenedor (default 8000)
+## Dockerfile (Ejemplo)
 
-## 5) Estructura
-```
-.
-├── app/
-│   ├── __init__.py
-│   ├── config.py
-│   ├── extensions.py
-│   ├── api/
-│   │   ├── __init__.py
-│   │   └── routes.py
-│   └── web/
-│       ├── __init__.py
-│       └── routes.py
-├── run.py
-├── wsgi.py
-├── requirements.txt
-├── Dockerfile
-├── docker-compose.yml
-├── .env.example
-└── .gitignore
+``` dockerfile
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "wsgi:app"]
 ```
 
-## 6) Despliegue recomendado en EC2 + NGINX (tu arquitectura)
-- Docker expone **solo a loopback**: `127.0.0.1:8080:8000`
-- NGINX recibe 80/443 y hace reverse proxy a `127.0.0.1:8080`
+------------------------------------------------------------------------
 
-Ejemplo NGINX (prod):
-```nginx
-server {
-  listen 80;
-  server_name api.tudominio.com;
+## docker-compose.yml (Ejemplo)
 
-  location / {
-    proxy_pass http://127.0.0.1:8080;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-  }
-}
+``` yaml
+version: "3.9"
+
+services:
+  api:
+    build: .
+    container_name: flask-api
+    env_file:
+      - .env
+    ports:
+      - "8080:8000"
+    restart: always
 ```
 
-## 7) Healthcheck para AutoScaling / ALB
-Configura el Target Group para usar:
-- Path: `/health`
-- Success codes: `200`
-# Proyecto-Python
+------------------------------------------------------------------------
+
+## Endpoints
+
+### Health
+
+``` bash
+GET /health
+```
+
+### Ping
+
+``` bash
+GET /api/v1/ping
+```
+
+------------------------------------------------------------------------
+
+## Despliegue en EC2 con Docker
+
+### 1. Instalar Docker
+
+``` bash
+sudo apt update
+sudo apt install docker.io docker-compose -y
+sudo systemctl enable docker
+sudo systemctl start docker
+```
+
+### 2. Clonar proyecto
+
+``` bash
+git clone <REPO_URL>
+cd proyecto
+```
+
+### 3. Configurar entorno
+
+``` bash
+cp .env.example .env
+```
+
+### 4. Construir y ejecutar
+
+``` bash
+docker compose up -d --build
+```
+
+### 5. Verificar
+
+``` bash
+docker ps
+curl http://localhost:8080/health
+```
+
+------------------------------------------------------------------------
+
+## Healthcheck para Load Balancer
+
+Configurar en ALB:
+
+-   Path: /health
+-   Success code: 200
+-   Interval: 30s
+
+------------------------------------------------------------------------
+
+## Seguridad
+
+-   No subir .env
+-   Usar HTTPS
+-   Cerrar puertos innecesarios
+-   Usar Secrets Manager
+
+------------------------------------------------------------------------
+
+## Logging
+
+Controlado con:
+
+``` env
+LOG_LEVEL=INFO
+```
+
+------------------------------------------------------------------------
+
+## Escalabilidad
+
+Preparado para:
+
+-   AutoScaling
+-   Docker Swarm
+-   ECS / EKS
+
+------------------------------------------------------------------------
+
+## Autor
+
+Javier Ariza
+
+Plantilla profesional para APIs Flask en producción.
