@@ -24,8 +24,14 @@ python -m flask --app run:app run --host 0.0.0.0 --port 8000
 
 Probar:
 ```bash
+# 1. Health check
 curl -i http://localhost:8000/health
+# 2. Ping
 curl -i http://localhost:8000/api/v1/ping
+# 3. Crear Compra
+curl -i -X POST -H "Content-Type: application/json" -d '{"user_id": "u1", "items": [{"product_id": "p1", "price": 10, "quantity": 2}]}' http://localhost:8000/api/v1/purchases
+# 4. Ver Compra (copia el ID del paso anterior)
+# curl -i http://localhost:8000/api/v1/purchases/<ID_AQUI>
 ```
 
 ## 3) Ejecutar con Docker (dev/prod con Gunicorn)
