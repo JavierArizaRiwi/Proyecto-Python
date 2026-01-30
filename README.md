@@ -19,7 +19,16 @@ python -m venv venv
 source venv/bin/activate  # en Windows: venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env
-python -m flask --app run:app run --host 0.0.0.0 --port 8000
+python -m flask --app run:app run --host 0.0.0.
+-## 7) Healthcheck para AutoScaling / ALB
++## 8) Healthcheck para AutoScaling / ALB
+Configura el Target Group para usar:
+- Path: `/health`
+- Success codes: `200`
+ {"id": "prod_1", "qty": 5}
+ {"id": "prod_2", "qty": 1}
+ {"id": "prod_1", "qty": 2},
+0 --port 8000
 ```
 
 Probar:
