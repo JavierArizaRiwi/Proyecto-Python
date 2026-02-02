@@ -3,6 +3,10 @@ from datetime import datetime
 from dataclasses import dataclass, field, asdict
 from typing import List, Optional
 
+# --- Domain Models (DTOs) ---
+# Usamos dataclasses para definir la estructura de nuestros datos.
+# Esto actúa como una capa de "Model" ligera, desacoplada de ORMs específicos por ahora.
+
 @dataclass
 class PurchaseItem:
     product_id: str
@@ -14,20 +18,33 @@ class Purchase:
     user_id: str
     items: List[PurchaseItem]
     total: float
+    # Generación automática de ID y Timestamp si no se proveen
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
     status: str = "CONFIRMED"
 
     def to_dict(self):
+        """Helper para serializar a JSON."""
         return asdict(self)
+
+# --- Service Layer ---
+# Contiene la Lógica de Negocio pura.
+# No sabe nada de HTTP, JSON, Flask o Status Codes.
+# Recibe datos, aplica reglas, guarda y retorna resultados.
 
 class PurchaseService:
     def __init__(self):
         # Simulación de base de datos en memoria
+        # En un caso real, aquí inyectaríamos un repositorio (SQLAlchemy, Mongo, etc).
         self._db: List[Purchase] = []
 
     def create_purchase(self, user_id: str, raw_items: List[dict]) -> Purchase:
-        """Procesa una compra calculando totales y guardándola."""
+        """
+        Procesa una compra:
+        1. Valida reglas de negocio (precios positivos, stock, etc).
+        2. Calcula totales.
+        3. Persiste la orden.
+        """
         items = []
         total = 0.0
 
@@ -35,7 +52,7 @@ class PurchaseService:
             price = float(item.get('price', 0.0))
             qty = int(item.get('quantity', 1))
             
-            # Validación básica de negocio
+            # Validación de Reglas de Negocio (Business Rules)
             if price < 0 or qty <= 0:
                 raise ValueError(f"Invalid price or quantity for product {item.get('product_id')}")
 
@@ -51,7 +68,9 @@ class PurchaseService:
         return purchase
 
     def get_purchase_by_id(self, purchase_id: str) -> Optional[Purchase]:
+        """Busca una compra por su ID único."""
         return next((p for p in self._db if p.id == purchase_id), None)
 
 # Singleton para usar en la app
+# En frameworks con Inyección de Dependencias real, esto se manejaría diferente.
 purchase_service = PurchaseService()

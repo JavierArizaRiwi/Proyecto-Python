@@ -2,8 +2,17 @@ from dataclasses import dataclass
 import os
 from dotenv import load_dotenv
 
+# --- Configuration Management ---
+# Seguimos el principio "Store config in the environment" (The Twelve-Factor App).
+# Esto permite desplegar la misma imagen Docker en Dev, Staging y Prod,
+# cambiando solo las variables de entorno.
+
 @dataclass(frozen=True)
 class Settings:
+    """
+    Contenedor inmutable para la configuración de la aplicación.
+    frozen=True asegura que la configuración no cambie durante la ejecución (Thread-Safety).
+    """
     flask_env: str
     app_name: str
     log_level: str
@@ -12,6 +21,7 @@ class Settings:
 
     @staticmethod
     def from_env() -> "Settings":
+        """Factory method que carga variables desde .env y el sistema."""
         load_dotenv(override=False)
 
         flask_env = os.getenv("FLASK_ENV", "development")

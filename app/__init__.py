@@ -5,6 +5,13 @@ from .api import api_bp
 from .web import web_bp
 
 def create_app() -> Flask:
+    """
+    Application Factory Pattern.
+    
+    Crea y configura una instancia de la aplicación Flask.
+    Esto permite crear múltiples instancias con diferentes configuraciones
+    (ej. para testing vs producción) y evita variables globales.
+    """
     settings = Settings.from_env()
 
     app = Flask(settings.app_name)
@@ -12,6 +19,8 @@ def create_app() -> Flask:
 
     configure_logging(app, settings.log_level)
 
+    # Registro de Blueprints (Módulos de rutas)
+    # url_prefix='/api/v1' versiona la API, buena práctica para evolución futura.
     app.register_blueprint(api_bp, url_prefix="/api/v1")
     app.register_blueprint(web_bp)
 

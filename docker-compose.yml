@@ -1,14 +1,20 @@
 services:
   api:
+    # Construye la imagen basada en el Dockerfile local
     build: 
       context: .
       dockerfile: Dockerfile
     container_name: flask-api
+    # Carga variables de entorno desde archivo (secretos, config)
     env_file:
       - .env
     restart: unless-stopped
+    # 'expose' hace que el puerto 8000 sea accesible SOLO para otros servicios
+    # dentro de la red de Docker (como Nginx), pero NO desde el host (internet).
+    # Esto mejora la seguridad al forzar el paso por el proxy.
     expose:
       - "8000"
+    # Healthcheck: Permite a Docker saber si la aplicación realmente está lista para recibir tráfico.
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
       interval: 10s
@@ -16,12 +22,18 @@ services:
       retries: 5
 
   nginx:
+    # Usamos la imagen oficial de Nginx basada en Alpine (muy ligera)
     image: nginx:1.25-alpine
     container_name: nginx-proxy
+    # Mapeo de puertos: El puerto 80 del host (tu máquina) va al 80 del contenedor.
+    # Este es el único punto de entrada público.
     ports:
       - "80:80"
+    # Montamos la configuración personalizada. ':ro' significa Read-Only (seguridad).
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    # Orquestación: Nginx no iniciará hasta que la API esté 'healthy'.
+    # Esto evita el error de "Connection refused" al arrancar.
     depends_on:
       api:
         condition: service_healthy
