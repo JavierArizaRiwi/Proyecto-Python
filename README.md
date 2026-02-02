@@ -1,6 +1,6 @@
 # Flask API Production-Ready + Docker Deployment
 
-API REST profesional desarrollada con Flask, estructurada con App Factory,
+API REST profesional (Senior Level) desarrollada con Flask, estructurada con App Factory,
 Blueprints y lista para producción con Docker.
 
 ------------------------------------------------------------------------
@@ -11,10 +11,33 @@ Blueprints y lista para producción con Docker.
 -   Blueprints
 -   Configuración por entorno (.env)
 -   Endpoint /health
--   **Nginx** como Reverse Proxy (Puerto 80)
+-   **Nginx** como Reverse Proxy (Puerto 80) - *Production Grade*
 -   Logging configurable
 -   Gunicorn para producción
 -   Docker y Docker Compose
+
+------------------------------------------------------------------------
+
+## Arquitectura y Ventajas
+
+Este proyecto no expone Flask directamente a internet (lo cual es inseguro y lento), sino que utiliza una arquitectura de 3 capas estándar en la industria:
+
+### 1. Nginx (The Gatekeeper)
+Actúa como **Reverse Proxy** frente a la aplicación.
+-   **Seguridad:** Oculta la infraestructura interna y gestiona cabeceras HTTP de forma segura.
+-   **Rendimiento:** Maneja conexiones concurrentes y archivos estáticos mucho más eficientemente que Python.
+-   **Buffering:** Protege a la aplicación de clientes lentos.
+
+### 2. Gunicorn (The Worker Manager)
+Servidor WSGI de producción que gestiona los procesos de Python.
+-   **Workers:** Configurado con múltiples *workers* (trabajadores). Esto permite manejar varias peticiones simultáneamente (paralelismo de procesos).
+-   **Robustez:** Si un worker falla o se bloquea, Gunicorn lo reinicia automáticamente sin detener el servicio completo.
+
+### 3. Flask (The Application)
+Contiene la lógica de negocio pura, desacoplada de la infraestructura de red.
+
+**Flujo de una petición:**
+`Cliente (Internet) -> Nginx (Puerto 80) -> Gunicorn (Socket/Puerto 8000) -> Flask App`
 
 ------------------------------------------------------------------------
 
@@ -93,10 +116,11 @@ python -m flask --app run:app run --host 0.0.0.0 --port 8000
 
 ## Ejecución con Docker
 
-### Construir y levantar
+### 1. Construir y levantar (Producción)
+Este comando compila la imagen y levanta los contenedores en segundo plano.
 
 ``` bash
-docker compose up --build
+docker compose up -d --build
 ```
 
 ### Probar
