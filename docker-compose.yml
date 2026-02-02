@@ -1,14 +1,28 @@
 services:
-  miapp:
-    build: .
-    container_name: miapp-flask
+  api:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: flask-api
     env_file:
       - .env
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:8080:8000"
+    expose:
+      - "8000"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
       interval: 10s
       timeout: 3s
       retries: 5
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: always

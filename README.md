@@ -11,7 +11,7 @@ Blueprints y lista para producción con Docker.
 -   Blueprints
 -   Configuración por entorno (.env)
 -   Endpoint /health
--   **Nginx** como Reverse Proxy
+-   **Nginx** como Reverse Proxy (Puerto 80)
 -   Logging configurable
 -   Gunicorn para producción
 -   Docker y Docker Compose
@@ -102,7 +102,7 @@ docker compose up --build
 ### Probar
 
 ``` bash
-curl http://localhost:8080/health
+curl http://localhost/health
 ```
 
 ------------------------------------------------------------------------
@@ -137,7 +137,7 @@ services:
     container_name: flask-api
     env_file:
       - .env
-    expose:
+    expose: # Solo visible internamente para Nginx
       - "8000"
     restart: always
 
@@ -146,10 +146,11 @@ services:
     container_name: nginx-proxy
     ports:
       - "80:80"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
+    volumes: # Configuración inyectada
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     restart: always
 ```
 
