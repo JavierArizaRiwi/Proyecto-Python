@@ -1,6 +1,6 @@
 # Flask API Production-Ready + Docker Deployment
 
-API REST desarrollada con Flask, estructurada con App Factory,
+API REST profesional desarrollada con Flask, estructurada con App Factory,
 Blueprints y lista para producción con Docker.
 
 ------------------------------------------------------------------------
@@ -11,6 +11,7 @@ Blueprints y lista para producción con Docker.
 -   Blueprints
 -   Configuración por entorno (.env)
 -   Endpoint /health
+-   **Nginx** como Reverse Proxy
 -   Logging configurable
 -   Gunicorn para producción
 -   Docker y Docker Compose
@@ -37,6 +38,9 @@ Blueprints y lista para producción con Docker.
     │   └── web/
     │       └── routes.py
     ├── run.py
+    ├── nginx/
+    │   └── conf.d/
+    │       └── default.conf
     ├── wsgi.py
     ├── requirements.txt
     ├── Dockerfile
@@ -127,12 +131,25 @@ version: "3.9"
 
 services:
   api:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     container_name: flask-api
     env_file:
       - .env
+    expose:
+      - "8000"
+    restart: always
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: nginx-proxy
     ports:
-      - "8080:8000"
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - api
     restart: always
 ```
 
